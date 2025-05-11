@@ -53,7 +53,6 @@
 <body>
   <h1>LLM Player</h1>
 
-  <!-- DASH video element -->
   <video id="video" controls crossorigin="anonymous"></video>
 
   <div id="controls">
@@ -62,13 +61,9 @@
     <span>ms</span>
   </div>
 
-  <!-- debug canvas for QR area -->
   <canvas id="debug" width="128" height="128"></canvas>
 
   <script>
-    // ────────────────────────────────────────────────
-    // 1) DASH.js player setup (LL-DASH enabled)
-    // ────────────────────────────────────────────────
     const url = '/ldash/1.mpd';
     const player = dashjs.MediaPlayer().create();
     player.updateSettings({
@@ -81,9 +76,6 @@
     });
     player.initialize(document.querySelector('#video'), url, true);
 
-    // ────────────────────────────────────────────────
-    // 2) QR-crop + latency meter
-    // ────────────────────────────────────────────────
     const qrSize  = 128;
     const margin  = 10;
     const off     = document.createElement('canvas');
@@ -96,7 +88,6 @@
       const video = document.querySelector('#video');
       if (video.readyState < 2) return;
 
-      // crop bottom-right
       const sx = video.videoWidth  - qrSize - margin;
       const sy = video.videoHeight - qrSize - margin;
       offCtx.drawImage(video, sx, sy, qrSize, qrSize, 0, 0, qrSize, qrSize);
