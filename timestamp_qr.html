@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <style>body,html{margin:0;padding:0;overflow:hidden}</style>
+</head>
+<body>
+  <canvas id="qr"></canvas>
+  <script>
+    const qr = new QRious({element: document.getElementById('qr'), size: 128});
+    function update() {
+      qr.value = Date.now().toString();
+    }
+    setInterval(update, 500);
+    update();
+  </script>
+</body>
+</html>

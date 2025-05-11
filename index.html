@@ -1,45 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>LL-DASH Player</title>
-  <!-- dash.js library -->
+  <meta charset="utf-8">
+  <title>QR Crop Debug & Latency</title>
+  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
   <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
   <style>
-    body { margin: 0; background: #000; display: flex; height: 100vh; }
-    video { margin: auto; max-width: 100%; max-height: 100%; }
+    body { font-family:sans-serif; margin:1em; }
+    video { width:100%; max-width:640px; background:#000; }
+    #latency { font-weight:bold; }
+    #debug { border:2px solid red; margin-top:10px; }
   </style>
 </head>
 <body>
-  <!-- video element for dash.js to attach to -->
-  <video id="videoPlayer"
-         controls autoplay muted
-         crossorigin="anonymous">
-    <!-- Optionally show a fallback message -->
-    Your browser does not support HTML5 video.
-  </video>
+  <h1>Debug QR Crop + Latency</h1>
+  <video id="video" controls crossorigin="anonymous"></video>
+  <p>Measured latency: <span id="latency">-</span> ms</p>
+  <!-- debug canvas shows exactly what we're feeding to jsQR -->
+  <canvas id="debug" width="128" height="128"></canvas>
 
   <script>
-    // URL to your manifest — match your nginx (or node-gpac) port/path
-    const url = 'http://localhost:8000/ldash/1.mpd';
-
-    // Create dash.js player
+    // 1) Initialize DASH
+    const video  = document.getElementById('video');
     const player = dashjs.MediaPlayer().create();
-    player.updateSettings({
-      streaming: {
-        // enable low-latency mode
-        lowLatencyEnabled: true,
-        // target ~1.5 s buffer before playback
-        liveDelay: 1.5
-      }
-    });
+    player.initialize(video, '/ldash/1.mpd', true);
 
-    // Initialize with the <video> element and your MPD
-    player.initialize(
-      document.getElementById('videoPlayer'),
-      url,
-      true
-    );
+    // 2) Setup offscreen + debug canvases
+    const qrSize   = 128;
+    const margin   = 10; // how far in from bottom/right
+    const off      = document.createElement('canvas');
+    off.width = off.height = qrSize;
+    const offCtx   = off.getContext('2d');
+
+    const debug    = document.getElementById('debug');
+    const dbgCtx   = debug.getContext('2d');
+    const display  = document.getElementById('latency');
+
+    // 3) Poll & crop at 10Hz
+    setInterval(() => {
+      if (video.readyState < 2) return; // HAVE_CURRENT_DATA
+
+      // compute bottom-right source coordinates
+      const sx = video.videoWidth  - qrSize - margin;
+      const sy = video.videoHeight - qrSize - margin;
+
+      console.log('Cropping from:', sx, sy, qrSize, qrSize);
+
+      // draw to offscreen for jsQR
+      offCtx.drawImage(video, sx, sy, qrSize, qrSize, 0, 0, qrSize, qrSize);
+      // draw to visible debug canvas
+      dbgCtx.clearRect(0, 0, qrSize, qrSize);
+      dbgCtx.drawImage(video, sx, sy, qrSize, qrSize, 0, 0, qrSize, qrSize);
+
+      const img  = offCtx.getImageData(0, 0, qrSize, qrSize);
+      const code = jsQR(img.data, qrSize, qrSize);
+
+      if (code && code.data) {
+        const sentTs   = parseInt(code.data, 10);
+        const latency  = Date.now() - sentTs;
+        display.textContent = latency;
+      }
+    }, 100);
   </script>
 </body>
 </html>
