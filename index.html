@@ -1,66 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>QR Crop Debug & Latency</title>
-  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+  <meta charset="utf-8" />
+  <title>LLM Player</title>
   <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
   <style>
-    body { font-family:sans-serif; margin:1em; }
-    video { width:100%; max-width:640px; background:#000; }
-    #latency { font-weight:bold; }
-    #debug { border:2px solid red; margin-top:10px; }
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: #03a9f4;
+    }
+
+    video {
+      width: 100%;
+      max-width: 720px;
+      background: #000;
+      border: 3px solid #03a9f4;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    #controls {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #latency {
+      font-size: 1.1rem;
+      color: #ffeb3b;
+    }
+
+    #debug {
+      margin-top: 1rem;
+      border: 2px dashed #757575;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
-  <h1>Debug QR Crop + Latency</h1>
+  <h1>LLM Player</h1>
+
+  <!-- DASH video element -->
   <video id="video" controls crossorigin="anonymous"></video>
-  <p>Measured latency: <span id="latency">-</span> ms</p>
-  <!-- debug canvas shows exactly what we're feeding to jsQR -->
+
+  <div id="controls">
+    <span>Measured latency:</span>
+    <span id="latency">–</span>
+    <span>ms</span>
+  </div>
+
+  <!-- debug canvas for QR area -->
   <canvas id="debug" width="128" height="128"></canvas>
 
   <script>
-    // 1) Initialize DASH
-    const video  = document.getElementById('video');
+    // ────────────────────────────────────────────────
+    // 1) DASH.js player setup (LL-DASH enabled)
+    // ────────────────────────────────────────────────
+    const url = '/ldash/1.mpd';
     const player = dashjs.MediaPlayer().create();
-    player.initialize(video, '/ldash/1.mpd', true);
+    player.updateSettings({
+      streaming: {
+        lowLatencyEnabled:       true,
+        liveDelayFragmentCount:  1,
+        bufferAheadLimit:        0,
+        manifestRefreshInterval: 1
+      }
+    });
+    player.initialize(document.querySelector('#video'), url, true);
 
-    // 2) Setup offscreen + debug canvases
-    const qrSize   = 128;
-    const margin   = 10; // how far in from bottom/right
-    const off      = document.createElement('canvas');
+    // ────────────────────────────────────────────────
+    // 2) QR-crop + latency meter
+    // ────────────────────────────────────────────────
+    const qrSize  = 128;
+    const margin  = 10;
+    const off     = document.createElement('canvas');
     off.width = off.height = qrSize;
-    const offCtx   = off.getContext('2d');
+    const offCtx  = off.getContext('2d');
+    const dbgCtx  = document.querySelector('#debug').getContext('2d');
+    const latDom  = document.querySelector('#latency');
 
-    const debug    = document.getElementById('debug');
-    const dbgCtx   = debug.getContext('2d');
-    const display  = document.getElementById('latency');
-
-    // 3) Poll & crop at 10Hz
     setInterval(() => {
-      if (video.readyState < 2) return; // HAVE_CURRENT_DATA
+      const video = document.querySelector('#video');
+      if (video.readyState < 2) return;
 
-      // compute bottom-right source coordinates
+      // crop bottom-right
       const sx = video.videoWidth  - qrSize - margin;
       const sy = video.videoHeight - qrSize - margin;
-
-      console.log('Cropping from:', sx, sy, qrSize, qrSize);
-
-      // draw to offscreen for jsQR
       offCtx.drawImage(video, sx, sy, qrSize, qrSize, 0, 0, qrSize, qrSize);
-      // draw to visible debug canvas
+
       dbgCtx.clearRect(0, 0, qrSize, qrSize);
       dbgCtx.drawImage(video, sx, sy, qrSize, qrSize, 0, 0, qrSize, qrSize);
 
       const img  = offCtx.getImageData(0, 0, qrSize, qrSize);
       const code = jsQR(img.data, qrSize, qrSize);
-
       if (code && code.data) {
-        const sentTs   = parseInt(code.data, 10);
-        const latency  = Date.now() - sentTs;
-        display.textContent = latency;
+        const sentTs = parseInt(code.data, 10);
+        latDom.textContent = Date.now() - sentTs;
       }
-    }, 100);
+    }, 250);
   </script>
 </body>
 </html>
