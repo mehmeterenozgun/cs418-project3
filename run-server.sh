@@ -11,7 +11,7 @@ DASH_SCRIPT="$SCRIPT_DIR/gpac-dash.js"
 # invocation flags
 IP="0.0.0.0"
 PORT="8000"
-CHUNKS_PER_SEGMENT="2"
+CHUNKS_PER_SEGMENT="121"
 
 node "$DASH_SCRIPT" \
   -ip $IP \

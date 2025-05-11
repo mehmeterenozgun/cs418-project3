@@ -16,7 +16,7 @@ ffmpeg -f flv -listen 1 -i rtmp://localhost:1935/live/ldash \
   -use_template 1 -target_latency 1 -use_timeline 1 \
   -adaptation_sets "id=0,streams=v" \
   -seg_duration 4 \
-  -frag_duration 2 \
+  -frag_duration 0.033 \
   -frag_type duration \
   -window_size 3 -extra_window_size 3 \
   -utc_timing_url "https://time.akamai.com/?iso" \
