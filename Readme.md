@@ -9,10 +9,13 @@ Prerequisites
 	•	nginx (for proxying)
 
 Setup & Run
+
 	1.	OBS
-	•	Stream: rtmp://localhost:1935/live/ (key: stream)
-	•	Set key-frame interval: keyint=120
-	•	Add on-screen clock filter
+
+•	Stream: rtmp://localhost:1935/live/ (key: stream)
+•	Set key-frame interval: keyint=120
+•	Add on-screen clock filter
+
 	2.	FFmpeg
 
 OUTPUT=static/ldash
@@ -40,7 +43,8 @@ sudo nginx -c /path/to/nginx.conf
 
 
 	5.	Playback
-	•	Open http://localhost/ldash/index.html in a browser
+
+•	Open http://localhost/ldash/index.html in a browser
 
 Results
 	•	Sub-5 s glass-to-glass latency achieved with 4 s segments & 1 s fragments
